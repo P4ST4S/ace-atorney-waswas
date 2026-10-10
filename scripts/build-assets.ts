@@ -25,7 +25,7 @@ import type {
 import { MANIFEST_FILE, RELEASE_INDEX_FILE } from '../asset-meta/release-layout.ts';
 import { prepareRelease } from './lib/release.ts';
 
-const PIPELINE_VERSION = 6;
+const PIPELINE_VERSION = 7;
 const ROOT = join(import.meta.dirname, '..');
 const ASSETS = join(ROOT, 'assets');
 const META = join(ROOT, 'asset-meta');
@@ -213,7 +213,7 @@ function diffPatch(base: Raster, frame: Raster): PosePiece | 'identical' | null 
   return { image: patch, at: { x: area.x, y: area.y } };
 }
 
-/** Alignment problems found while building frame rigs; the build fails if any are found. */
+/** Alignment problems found while building rigs; the build fails if any are found. */
 const alignmentErrors: string[] = [];
 
 /** Max share of differing pixels tolerated in the lower body (which never animates) of a full-frame fallback. */
@@ -304,13 +304,55 @@ function buildFramesPose(sheet: Raster, slices: SliceFile, pose: { idle: string;
   };
 }
 
-function buildPartsPose(sheet: Raster, pose: { size: { w: number; h: number }; anchor: Point; scale?: number; base: readonly AuthoredPiece[]; blink?: readonly (readonly AuthoredPiece[])[]; talk?: readonly (readonly AuthoredPiece[])[] }): BuiltPose {
+/** Max share of an overlay's border that may differ from the base under it ("parts" rigs). */
+const MAX_SEAM_MISMATCH = 0.02;
+/** Per-channel difference above which a border pixel counts as not blending (overlays are cut from other drawings). */
+const SEAM_TOLERANCE = 48;
+const SEAM_WIDTH = 2;
+
+/**
+ * Seam check for "parts" overlays: a mouth or eye patch replaces pixels inside the face, so its border must blend
+ * into the base under it. A wrong source rectangle (foreign atlas pieces) or a wrong offset shows up here.
+ */
+function seamMismatch(base: Raster, piece: PosePiece): number {
+  const { image, at } = piece;
+  let compared = 0;
+  let differing = 0;
+  for (let y = 0; y < image.h; y += 1) {
+    for (let x = 0; x < image.w; x += 1) {
+      const inner = y >= SEAM_WIDTH && y < image.h - SEAM_WIDTH && x >= SEAM_WIDTH && x < image.w - SEAM_WIDTH;
+      const bx = at.x + x;
+      const by = at.y + y;
+      if (inner || bx < 0 || by < 0 || bx >= base.w || by >= base.h) continue;
+      const i = (y * image.w + x) * 4;
+      const j = (by * base.w + bx) * 4;
+      if ((image.data[i + 3] ?? 0) === 0 || (base.data[j + 3] ?? 0) === 0) continue;
+      compared += 1;
+      for (let c = 0; c < 3; c += 1) {
+        if (Math.abs((image.data[i + c] ?? 0) - (base.data[j + c] ?? 0)) > SEAM_TOLERANCE) {
+          differing += 1;
+          break;
+        }
+      }
+    }
+  }
+  return compared === 0 ? 0 : differing / compared;
+}
+
+function buildPartsPose(label: string, sheet: Raster, pose: { size: { w: number; h: number }; anchor: Point; scale?: number; base: readonly AuthoredPiece[]; blink?: readonly (readonly AuthoredPiece[])[]; talk?: readonly (readonly AuthoredPiece[])[] }): BuiltPose {
   const pieces: PosePiece[] = pose.base.map((p) => ({ image: authoredPieceRaster(sheet, p), at: p.at }));
   const baseIndices = pieces.map((_, i) => i);
+  const baseCanvas = blank(pose.size.w, pose.size.h);
+  for (const piece of pieces) blit(baseCanvas, piece.image, piece.at.x, piece.at.y);
   const frameOf = (overlay: readonly AuthoredPiece[]): number[] => [
     ...baseIndices,
     ...overlay.map((p) => {
-      pieces.push({ image: authoredPieceRaster(sheet, p), at: p.at });
+      const piece = { image: authoredPieceRaster(sheet, p), at: p.at };
+      const mismatch = seamMismatch(baseCanvas, piece);
+      if (mismatch > MAX_SEAM_MISMATCH) {
+        alignmentErrors.push(`${label}: overlay ${JSON.stringify(p.src)} at ${JSON.stringify(p.at)} does not blend into the base (${(mismatch * 100).toFixed(1)}% of its border differs: wrong source rectangle or offset?)`);
+      }
+      pieces.push(piece);
       return pieces.length - 1;
     }),
   ];
@@ -389,7 +431,7 @@ function buildRigPoses(rig: AuthoredRig, sheet: Raster): [string, BuiltPose][] {
     const slices = readJson(join(META, 'rigs', rig.slices), sliceSchema);
     return Object.entries(rig.poses).map(([poseId, pose]) => [poseId, buildFramesPose(sheet, slices, pose)]);
   }
-  return Object.entries(rig.poses).map(([poseId, pose]) => [poseId, buildPartsPose(sheet, pose)]);
+  return Object.entries(rig.poses).map(([poseId, pose]) => [poseId, buildPartsPose(`${rig.id}/${poseId}`, sheet, pose)]);
 }
 
 for (const rigId of rigs) {
@@ -486,7 +528,7 @@ const releaseBytes = prepared.index.files.reduce((sum, f) => sum + f.size, 0);
 console.log(`Assets: ${built} built, ${skipped} up to date -> public/generated/${MANIFEST_FILE}`);
 console.log(`Release ${prepared.manifest.release}: ${prepared.index.files.length} files, ${(releaseBytes / 1048576).toFixed(1)} MB (public/generated/${RELEASE_INDEX_FILE})`);
 if (alignmentErrors.length > 0) {
-  console.error('Frame alignment check failed:');
+  console.error('Rig alignment check failed:');
   for (const error of alignmentErrors) console.error(`  ${error}`);
   process.exitCode = 1;
 }
