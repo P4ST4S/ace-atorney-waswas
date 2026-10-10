@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <!-- Demo evidence only: a fictional access badge. -->
+  <rect x="10" y="10" width="880" height="580" rx="48" fill="#e8eef5" stroke="#2c4fa8" stroke-width="16"/>
+  <rect x="10" y="10" width="880" height="140" rx="48" fill="#2c4fa8"/>
+  <text x="450" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#fff">BADGE D'ACCÈS</text>
+  <rect x="70" y="200" width="240" height="300" rx="16" fill="#9fb3c8"/>
+  <circle cx="190" cy="300" r="70" fill="#6b7c85"/>
+  <rect x="110" y="380" width="160" height="110" rx="40" fill="#6b7c85"/>
+  <g font-family="Arial, sans-serif" fill="#1b2a3a">
+    <text x="360" y="270" font-size="52" font-weight="bold">W. — Niveau 2</text>
+    <text x="360" y="350" font-size="40">Entrée : 18:02</text>
+    <text x="360" y="420" font-size="40">Sortie : 20:41</text>
+  </g>
+</svg>

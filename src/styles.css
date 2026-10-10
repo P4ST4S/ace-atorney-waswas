@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@import "@fontsource/nunito/400.css";
+@import "@fontsource/nunito/700.css";
+@import "@fontsource/nunito/800.css";
+
+@theme {
+  --font-game: "Nunito", system-ui, sans-serif;
+  --color-text-red: #ff5a3c;
+  --color-text-blue: #6cc4ff;
+  --color-text-green: #7be37b;
+  --color-box: rgb(12 18 38 / 0.82);
+  --color-box-edge: rgb(255 255 255 / 0.85);
+  --color-nameplate: #2c4fa8;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-game);
+  color: #fff;
+}
+
+/* Interjection bubble: quick pop with a slight overshoot, like the original games. */
+@keyframes interjection-pop {
+  0% { transform: scale(0.35); opacity: 0; }
+  55% { transform: scale(1.08); opacity: 1; }
+  75% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.interjection-pop {
+  animation: interjection-pop 220ms ease-out both;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(-40%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.toast-in {
+  animation: toast-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interjection-pop,
+  .toast-in {
+    animation-duration: 1ms;
+  }
+}
+
+/* "Témoignage" / "Contre-interrogatoire" banner. */
+@keyframes banner-slide {
+  from { transform: translateX(-35%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.banner-slide {
+  animation: banner-slide 260ms ease-out both;
+}
+
+/* Verdict letters slam in one by one. */
+@keyframes verdict-letter {
+  0% { transform: scale(2.4); opacity: 0; }
+  70% { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.verdict-letter {
+  display: inline-block;
+  animation: verdict-letter 180ms ease-out both;
+}
+
+/* Health bar flashes red on damage. */
+@keyframes damage-flash {
+  0%, 40% { box-shadow: 0 0 0 4px rgb(255 40 40 / 0.95); }
+  100% { box-shadow: 0 0 0 0 rgb(255 40 40 / 0); }
+}
+.damage-flash {
+  animation: damage-flash 900ms ease-out;
+}

@@ -1,0 +1,19 @@
+{
+  "id": "miles-edgeworth",
+  "sheet": "images/characters/miles-edgeworth.png",
+  "kind": "parts",
+  "poses": {
+    "normal": {
+      "size": { "w": 706, "h": 976 },
+      "anchor": { "x": 353, "y": 976 },
+      "base": [
+        {
+          "src": { "x": 0, "y": 0, "w": 706, "h": 976 },
+          "at": { "x": 0, "y": 0 },
+          "seeds": [{ "x": 300, "y": 700 }],
+          "exclude": [{ "x": 0, "y": 0, "w": 112, "h": 436 }]
+        }
+      ]
+    }
+  }
+}

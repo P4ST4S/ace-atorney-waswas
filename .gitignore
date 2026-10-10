@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Raw copyrighted assets and generated outputs are never committed (see docs/OPEN_QUESTIONS.md §8)
+assets/
+public/generated/
+
+# Build and test outputs
+dist/
+playwright-report/
+test-results/
+coverage/
+*.tsbuildinfo
+
+# Local
+.DS_Store
+*.log

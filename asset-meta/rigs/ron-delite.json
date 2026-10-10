@@ -1,0 +1,15 @@
+{
+  "id": "ron-delite",
+  "sheet": "images/characters/ron-delite.png",
+  "kind": "frames",
+  "slices": "ron-delite.slices.json",
+  "poses": {
+    "normal": { "idle": "b1f1", "blink": ["b1f2", "b1f3", "b1f2"], "talk": ["b1f4", "b1f5", "b1f1"] },
+    "tilt": { "idle": "b2f5", "blink": ["b2f4", "b2f3", "b2f4"], "talk": ["b2f6", "b2f7", "b2f8"] },
+    "down": { "idle": "b3f1", "talk": ["b3f2", "b3f3", "b3f1"] },
+    "nervous": { "idle": "b4f1", "blink": ["b4f2", "b4f3", "b4f2"], "talk": ["b4f4", "b4f5", "b4f1"] },
+    "crying": { "idle": "b5f1", "talk": ["b5f4", "b5f5", "b5f1"] },
+    "breakdown": { "idle": "b5f2", "talk": ["b5f3", "b5f2"] },
+    "pleading": { "idle": "b6f1", "blink": ["b6f2", "b6f3", "b6f2"], "talk": ["b6f4", "b6f5", "b6f1"] }
+  }
+}

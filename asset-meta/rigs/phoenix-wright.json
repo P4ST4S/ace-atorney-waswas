@@ -1,0 +1,18 @@
+{
+  "id": "phoenix-wright",
+  "sheet": "images/characters/phoenix-wright.png",
+  "kind": "parts",
+  "poses": {
+    "normal": {
+      "size": { "w": 891, "h": 1065 },
+      "anchor": { "x": 445, "y": 1065 },
+      "base": [
+        { "src": { "x": 0, "y": 0, "w": 891, "h": 1065 }, "at": { "x": 0, "y": 0 }, "seeds": [{ "x": 600, "y": 500 }] }
+      ],
+      "talk": [
+        [{ "src": { "x": 0, "y": 0, "w": 108, "h": 160 }, "at": { "x": 612, "y": 174 } }],
+        [{ "src": { "x": 0, "y": 160, "w": 108, "h": 106 }, "at": { "x": 612, "y": 227 } }]
+      ]
+    }
+  }
+}

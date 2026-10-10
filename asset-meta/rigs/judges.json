@@ -1,0 +1,13 @@
+{
+  "id": "judges",
+  "sheet": "images/characters/judges.png",
+  "kind": "parts",
+  "poses": {
+    "normal": {
+      "size": { "w": 324, "h": 540 },
+      "anchor": { "x": 162, "y": 540 },
+      "scale": 1.8,
+      "base": [{ "src": { "x": 0, "y": 0, "w": 324, "h": 540 }, "at": { "x": 0, "y": 0 } }]
+    }
+  }
+}

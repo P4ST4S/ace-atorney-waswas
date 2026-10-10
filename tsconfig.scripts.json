@@ -1,0 +1,13 @@
+{
+  // Node scripts run with native type stripping: no type checking at runtime, hence this config.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.scripts.tsbuildinfo"
+  },
+  "include": ["scripts/**/*.ts", "asset-meta/**/*.ts"],
+  "exclude": ["scripts/**/*.test.ts"]
+}

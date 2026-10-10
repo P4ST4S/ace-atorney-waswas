@@ -1,0 +1,18 @@
+{
+  // Tooling configs and tests (Vitest runs in Node; some tests touch DOM-like APIs through fakes).
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "jsx": "react-jsx",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
+  },
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "eslint.config.js",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "tests/**/*.ts"
+  ]
+}
