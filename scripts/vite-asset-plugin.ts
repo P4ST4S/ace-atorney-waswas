@@ -5,8 +5,8 @@
  *   references (no pipeline caches such as .cache.json or poses.json).
  * - Remote mode: dist/ only ships `generated/manifest.json`, which points to an R2 release. The build checks
  *   that this release is completely published (its release.json marker is uploaded last) unless
- *   ASSET_RELEASE_CHECK=skip. ASSET_RELEASE=<release> rebuilds the frontend against an older published release
- *   (rollback) by downloading that release's manifest.
+ *   ASSET_RELEASE_CHECK=skip. ASSET_RELEASE=<release> builds against a published release by downloading its
+ *   manifest: hosts without the generated files (Vercel, CI) and rollbacks.
  *
  * Vite's own copy of public/ is disabled; other public files (outside generated/) are still copied.
  * Guards: no `VITE_*` variable may look like a secret, and R2 credentials must not appear in dist/.
@@ -133,7 +133,7 @@ export function wasWasAssets(): Plugin {
         if (source.kind !== 'remote') throw new Error('ASSET_RELEASE needs remote assets: use `pnpm build:remote`.');
         manifestText = await fetchPublishedManifest(source.base, pinned, timedFetch);
         manifest = parseManifest(manifestText);
-        config.logger.info(`[waswas-assets] rollback build on published release ${pinned}`);
+        config.logger.info(`[waswas-assets] build on published release ${pinned} (manifest downloaded from ${source.base})`);
         return;
       }
       const path = join(generatedDir(), MANIFEST_FILE);

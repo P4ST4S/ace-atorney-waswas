@@ -174,6 +174,32 @@ Rien n'est jamais supprimé : les anciennes releases restent disponibles pour un
 
 `pnpm build` (local) échoue si `public/generated/manifest.json` manque : il faut lancer `pnpm assets:build` d'abord.
 
+### 8.1 Hébergement sur Vercel (ou toute CI sans les assets)
+
+Vercel construit depuis git, où ne figurent ni `public/generated/` ni `assets/`. Le build y télécharge donc le manifeste de la release publiée, avec `ASSET_RELEASE`.
+
+| Variable Vercel | Valeur | Rôle |
+|---|---|---|
+| `ASSET_RELEASE` | la release publiée, par exemple `ce7a8ce99dfa5107` (affichée par `pnpm assets:build` et `pnpm assets:upload`) | Le build télécharge `releases/<release>/manifest.json`, vérifie l'index, puis l'embarque dans `dist/`. |
+| `VITE_ASSET_BASE_URL` | `https://pub-fcafc9a980984336ba95440ef648c8cb.r2.dev` | Facultative avec `pnpm build:remote` (déjà dans `.env.remote`), mais **indispensable** si la commande de build reste `pnpm build`. Seule variable publique. |
+
+Réglages du projet :
+- **Commande de build** : `pnpm build:remote`. `pnpm build` convient aussi si `VITE_ASSET_BASE_URL` est définie dans Vercel.
+- **Dossier de sortie** : `dist`.
+- **Node** : 22.x.
+
+À **ne pas** définir sur Vercel :
+- `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` : l'upload se fait en local ;
+- toute variable `VITE_*` secrète ;
+- `ASSET_RELEASE_CHECK=skip`.
+
+**À chaque nouvelle release**, enchaîner :
+1. `pnpm assets:build`, puis `pnpm assets:upload` ;
+2. mettre à jour `ASSET_RELEASE` dans Vercel ;
+3. **redéployer** : une variable modifiée ne s'applique qu'aux nouveaux déploiements.
+
+**CORS** : ajouter l'origine du site Vercel (`https://<projet>.vercel.app`, puis le domaine personnalisé) à `deploy/r2/cors.json` et `cors.wrangler.json`, puis réappliquer la politique (§7). Sinon, les effets sonores basculent en HTML5 et la console signale l'erreur. Les URL de *preview* changent à chaque déploiement : seule l'URL de production est à déclarer.
+
 ## 9. Retour arrière
 
 Les releases ne sont jamais supprimées par les scripts. Deux façons de revenir en arrière :
