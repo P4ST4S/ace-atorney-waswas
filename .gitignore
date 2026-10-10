@@ -15,3 +15,9 @@ coverage/
 # Local
 .DS_Store
 *.log
+
+# Secrets and local overrides (R2 credentials live in r2.env, see r2.env.example)
+r2.env
+.r2.env
+.env.local
+.env.*.local

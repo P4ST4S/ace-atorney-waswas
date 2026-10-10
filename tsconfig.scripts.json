@@ -9,5 +9,5 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.scripts.tsbuildinfo"
   },
   "include": ["scripts/**/*.ts", "asset-meta/**/*.ts"],
-  "exclude": ["scripts/**/*.test.ts"]
+  "exclude": ["scripts/**/*.test.ts", "asset-meta/**/*.test.ts"]
 }

@@ -8,6 +8,8 @@
  *   over the idle frame when that is lossless to composite, otherwise as full frames.
  * - Audio: copied as-is.
  * - Incremental: outputs are skipped when their inputs (file size/mtime, parameters) are unchanged.
+ * - Release: manifest.json carries a deterministic content version of the referenced files, and release.json
+ *   lists them with their size and SHA-256 (what `pnpm assets:upload` publishes, see docs/DEPLOYMENT_R2.md).
  *
  * Usage: node --experimental-strip-types scripts/build-assets.ts [--force]
  */
@@ -18,10 +20,12 @@ import sharp from 'sharp';
 import { z } from 'zod';
 import { audio, authoredImages, images, portraits, rigs } from '../asset-meta/assets.ts';
 import type {
-  AssetManifest, AuthoredPiece, AuthoredRig, ManifestImage, ManifestPose, Point, Rect, SheetPiece, SliceFile, SpriteFrame,
+  AuthoredPiece, AuthoredRig, ManifestImage, ManifestPose, Point, Rect, SheetPiece, SliceFile, SpriteFrame,
 } from '../asset-meta/manifest-types.ts';
+import { MANIFEST_FILE, RELEASE_INDEX_FILE } from '../asset-meta/release-layout.ts';
+import { prepareRelease } from './lib/release.ts';
 
-const PIPELINE_VERSION = 5;
+const PIPELINE_VERSION = 6;
 const ROOT = join(import.meta.dirname, '..');
 const ASSETS = join(ROOT, 'assets');
 const META = join(ROOT, 'asset-meta');
@@ -66,7 +70,7 @@ const sizeSchema = z.object({ w: z.number(), h: z.number() });
 const sheetPieceSchema = z.object({ s: z.tuple([z.number(), z.number(), z.number(), z.number()]), a: z.tuple([z.number(), z.number()]) });
 const frameSchema = z.array(sheetPieceSchema);
 const posesSchema = z.record(z.string(), z.object({
-  url: z.string(), sheet: sizeSchema, size: sizeSchema, anchor: point, scale: z.number(),
+  path: z.string(), sheet: sizeSchema, size: sizeSchema, anchor: point, scale: z.number(),
   idle: frameSchema, blink: z.array(frameSchema), talk: z.array(frameSchema),
 }));
 
@@ -369,13 +373,13 @@ for (const [alias, src] of imageSources) {
   const key = fingerprint([src], { quality: 88 });
   if (upToDate(output, key)) {
     const meta = await sharp(path).metadata();
-    manifestImages[alias] = { url: `generated/${output}`, w: meta.width, h: meta.height };
+    manifestImages[alias] = { path: output, w: meta.width, h: meta.height };
     skipped += 1;
     continue;
   }
   mkdirSync(dirname(path), { recursive: true });
   const info = await sharp(src).webp({ quality: 88, alphaQuality: 100, effort: 4 }).toFile(path);
-  manifestImages[alias] = { url: `generated/${output}`, w: info.width, h: info.height };
+  manifestImages[alias] = { path: output, w: info.width, h: info.height };
   cache[output] = key;
   built += 1;
 }
@@ -413,7 +417,7 @@ for (const rigId of rigs) {
     const file = `sprites/${rig.id}/${poseId}.webp`;
     await writeWebp(poseSheet, file, 92);
     poses[poseId] = {
-      url: `generated/${file}`,
+      path: file,
       sheet: { w: poseSheet.w, h: poseSheet.h },
       size: builtPose.size,
       anchor: builtPose.anchor,
@@ -434,11 +438,11 @@ for (const rigId of rigs) {
 for (const [alias, spec] of Object.entries(portraits)) {
   const pose = manifestSprites[spec.rig]?.[spec.pose];
   if (pose === undefined) throw new Error(`Portrait ${alias}: unknown pose ${spec.rig}/${spec.pose}`);
-  const sheetFile = join(OUT, pose.url.replace(/^generated\//, ''));
+  const sheetFile = join(OUT, pose.path);
   const output = `img/${alias}.webp`;
   const key = fingerprint([sheetFile], { rect: spec.rect, idle: pose.idle });
   if (upToDate(output, key)) {
-    manifestImages[alias] = { url: `generated/${output}`, w: PORTRAIT_SIZE, h: PORTRAIT_SIZE };
+    manifestImages[alias] = { path: output, w: PORTRAIT_SIZE, h: PORTRAIT_SIZE };
     skipped += 1;
     continue;
   }
@@ -456,7 +460,7 @@ for (const [alias, spec] of Object.entries(portraits)) {
     .resize(PORTRAIT_SIZE, PORTRAIT_SIZE)
     .webp({ quality: 90, alphaQuality: 100 })
     .toFile(path);
-  manifestImages[alias] = { url: `generated/${output}`, w: PORTRAIT_SIZE, h: PORTRAIT_SIZE };
+  manifestImages[alias] = { path: output, w: PORTRAIT_SIZE, h: PORTRAIT_SIZE };
   cache[output] = key;
   built += 1;
 }
@@ -465,7 +469,7 @@ for (const [alias, rel] of Object.entries(audio)) {
   const src = join(ASSETS, rel);
   const output = `audio/${alias}${extname(rel)}`;
   const key = fingerprint([src], {});
-  manifestAudio[alias] = `generated/${output}`;
+  manifestAudio[alias] = output;
   if (upToDate(output, key)) { skipped += 1; continue; }
   mkdirSync(dirname(join(OUT, output)), { recursive: true });
   copyFileSync(src, join(OUT, output));
@@ -473,10 +477,14 @@ for (const [alias, rel] of Object.entries(audio)) {
   built += 1;
 }
 
-const manifest: AssetManifest = { version: 1, images: manifestImages, sprites: manifestSprites, audio: manifestAudio };
-writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(manifest)}\n`);
+// Release: a content version of exactly the files the manifest references (see scripts/lib/release.ts).
+const prepared = prepareRelease(OUT, { version: 2, images: manifestImages, sprites: manifestSprites, audio: manifestAudio });
+writeFileSync(join(OUT, MANIFEST_FILE), prepared.manifestText);
+writeFileSync(join(OUT, RELEASE_INDEX_FILE), prepared.indexText);
 writeFileSync(CACHE_FILE, `${JSON.stringify(cache, null, 2)}\n`);
-console.log(`Assets: ${built} built, ${skipped} up to date -> public/generated/manifest.json`);
+const releaseBytes = prepared.index.files.reduce((sum, f) => sum + f.size, 0);
+console.log(`Assets: ${built} built, ${skipped} up to date -> public/generated/${MANIFEST_FILE}`);
+console.log(`Release ${prepared.manifest.release}: ${prepared.index.files.length} files, ${(releaseBytes / 1048576).toFixed(1)} MB (public/generated/${RELEASE_INDEX_FILE})`);
 if (alignmentErrors.length > 0) {
   console.error('Frame alignment check failed:');
   for (const error of alignmentErrors) console.error(`  ${error}`);

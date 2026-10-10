@@ -35,6 +35,13 @@ describe('demo chapter: static validation', () => {
     expect(errors).toEqual([]);
     expect(issues.filter((i) => i.level === 'warning').map((i) => `${i.where}: ${i.message}`)).toEqual([]);
   });
+
+  it('names evidence images "evidence.*" (the public bucket only accepts "evidence.demo-*", see scripts/lib/release.ts)', () => {
+    for (const def of Object.values(chapter.evidence)) {
+      const aliases = [def.icon, def.detail, ...Object.values(def.variants ?? {}).flatMap((v) => [v.icon, v.detail])];
+      for (const alias of aliases) if (alias !== undefined) expect(alias).toMatch(/^evidence\./);
+    }
+  });
 });
 
 describe('demo chapter: deterministic playthroughs', () => {

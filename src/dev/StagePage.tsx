@@ -1,6 +1,6 @@
 import { use, useState } from 'react';
 import { courtViews, type CourtPos } from '../../asset-meta/assets.ts';
-import { AssetCatalog, assetUrl } from '../runtime/assets.ts';
+import { AssetCatalog } from '../runtime/assets.ts';
 import { DialogueBox } from '../ui/DialogueBox.tsx';
 import { CharacterSprite } from '../ui/stage/CharacterSprite.tsx';
 import { SceneViewport } from '../ui/stage/SceneViewport.tsx';
@@ -46,12 +46,12 @@ export function StagePage() {
 
   const scene = (
     <>
-      <img src={assetUrl(bg.url)} width={bg.w} height={bg.h} alt="" className="absolute top-0 left-0 max-w-none" data-testid="background" />
+      <img src={bg.url} width={bg.w} height={bg.h} alt="" className="absolute top-0 left-0 max-w-none" data-testid="background" />
       {cast !== undefined && activePose !== undefined && (
         <CharacterSprite pose={activePose} slot={layout.slot} talking={talking} cycling={cycling} seed={7} testId="character" />
       )}
       {desk !== undefined && (
-        <img src={assetUrl(desk.image.url)} width={desk.image.w} height={desk.image.h} alt="" className="absolute max-w-none" style={{ left: desk.x, top: desk.y }} data-testid="desk" />
+        <img src={desk.image.url} width={desk.image.w} height={desk.image.h} alt="" className="absolute max-w-none" style={{ left: desk.x, top: desk.y }} data-testid="desk" />
       )}
     </>
   );

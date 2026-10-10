@@ -245,5 +245,5 @@ Ce dossier sera étiqueté par écoute plus tard (jalon 5). Le jeu étant en fra
 | Étape | Détail |
 |---|---|
 | `asset-meta/` (versionné) | Alias logiques vers les fichiers sources, rigs des personnages, carte de réorganisation. |
-| `pnpm assets:build` | Script `scripts/build-assets.ts` (sharp). Il produit `public/generated/` (hors git) avec :<br>• décors et interjections en WebP ;<br>• images découpées par pose et patch ;<br>• audio copié tel quel ;<br>• un `manifest.json` (dimensions, ancres, frames, offsets). |
+| `pnpm assets:build` | Script `scripts/build-assets.ts` (sharp). Il produit `public/generated/` (hors git) avec :<br>• décors et interjections en WebP ;<br>• images découpées par pose et patch ;<br>• audio copié tel quel ;<br>• un `manifest.json` (release, chemins, dimensions, ancres, frames, offsets) ;<br>• un `release.json` (index de la release, pour l'upload R2 : voir `DEPLOYMENT_R2.md`). |
 | Exécution | Le manifeste est chargé au démarrage ; les ressources sont chargées par section, puis décodées (`img.decode()`) avant affichage. Une politique LRU libère les références aux ressources dont ni la section courante ni la suivante n'ont besoin. |

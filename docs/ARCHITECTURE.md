@@ -23,6 +23,7 @@ Ce document fixe l'architecture du moteur et les **contrats** que le code doit r
 | Howler.js | 2.2.4 | Audio : déverrouillage de l'autoplay, fondus, lecteurs multiples, repli HTML5 pour les musiques longues |
 | zod | 4 (`zod/mini`) | Validation structurelle des sauvegardes uniquement |
 | sharp | 0.35 | Pipeline d'assets (découpe, WebP) |
+| `@aws-sdk/client-s3` | 3.x | Upload des assets vers Cloudflare R2 (`scripts/` uniquement, jamais dans le bundle) |
 | Vitest | 5 | Tests unitaires du moteur, du Director, du texte, du contenu |
 | Playwright | 1.64 | Tests de bout en bout et captures |
 | ESLint + typescript-eslint | 10 / 8 | Qualité et frontières de modules |
@@ -34,7 +35,7 @@ Ce document fixe l'architecture du moteur et les **contrats** que le code doit r
 | PixiJS | Voir §5.1. |
 | XState | La difficulté est dans les données (pile d'appels, blocs ré-entrants), pas dans un graphe d'états fixe. Un réducteur écrit à la main est plus simple à sauvegarder et à tester. |
 | Bibliothèque i18n | Le jeu est en français uniquement ; les textes d'interface sont dans `ui-fr.ts`. |
-| Backend | Aucun besoin : tout tourne côté client et les sauvegardes sont locales. |
+| Backend | Aucun besoin : tout tourne côté client et les sauvegardes sont locales. Les assets peuvent être servis par un bucket R2 public, sans Worker (`DEPLOYMENT_R2.md`). |
 
 **Scripts TypeScript** (`scripts/`) :
 - Ils sont exécutés par le *type-stripping* natif de Node (`--experimental-strip-types` sous Node 22.17).
@@ -48,9 +49,12 @@ asset-meta/            versionné : alias d'assets, rigs des personnages, carte 
   assets.ts            alias logiques → fichiers sources (décors, bureaux, audio, interjections)
   rigs/*.json          rigs des personnages (frames ou pièces, ancres, offsets)
   reorg-map.json       trace de la réorganisation d'assets/
+  release-layout.ts    emplacement des assets : URL locales ou R2, clés `releases/<release>/…` (partagé)
 assets/                sources brutes (hors git)
-public/generated/      sortie du pipeline (hors git)
-scripts/               reorganize-assets.ts, build-assets.ts, slice-frame-sheet.ts
+public/generated/      sortie du pipeline (hors git) : fichiers, manifest.json, release.json
+scripts/               reorganize-assets.ts, build-assets.ts, slice-frame-sheet.ts,
+                       upload-assets.ts, verify-release.ts, vite-asset-plugin.ts, lib/ (release, upload, contrôles)
+deploy/r2/             politique CORS du bucket (formats dashboard et wrangler)
 docs/
 src/
   engine/              PUR : types, compile, step (dont contre-interrogatoire), text, validate, autoplay
@@ -64,7 +68,8 @@ src/
     typewriter.ts      machine à écrire impérative
   dev/                 page /dev/stage et HUD de performance (développement uniquement)
   boot.ts, App.tsx     création des services hors de React, écran « Cliquez pour commencer »
-tests/e2e/             Playwright (helpers, smoke, stage, perf, dialogue, slice)
+tests/e2e/             Playwright (helpers, smoke, stage, perf, dialogue, slice, assets ; r2.config.ts)
+tests/support/         émulateur R2 local pour les tests en mode distant
 ```
 
 ## 4. Frontières de modules
@@ -145,6 +150,8 @@ La couche UI vient par-dessus : barre de vie, boîte de texte, contrôles, fenê
 - Une planche brute n'est jamais chargée (jusqu'à 225 Mo décodée) : seules les feuilles par pose arrivent dans le navigateur.
 - Les ressources sont chargées par section : avant d'afficher un état, le Director attend `img.decode()` pour les images indispensables.
 - Un cache LRU garde les ressources des sections courante et suivante et **libère les références** des autres.
+- Les images sont chargées sans `crossOrigin` (aucun pixel n'est lu), comme les `<img>` et les fonds CSS qui les affichent : elles partagent le cache HTTP et n'ont pas besoin de CORS quand les assets sont sur R2.
+- Après le clic de démarrage, `Presenter.warmUp()` précharge les sons des effets, les voix, les blips et les bulles d'interjection, au mieux et sans bloquer (utile quand les assets viennent de `r2.dev`, sans CDN).
   - Le format WebP réduit le transfert, pas la mémoire décodée.
   - La LRU borne ce que **l'application** retient ; elle ne garantit pas la libération immédiate des caches internes du navigateur. La mémoire est **mesurée** (DevTools, HUD de debug), pas promise.
 
@@ -162,9 +169,18 @@ La couche UI vient par-dessus : barre de vie, boîte de texte, contrôles, fenê
 |---|---|
 | `scripts/reorganize-assets.ts` | Réorganisation unique et réversible d'`assets/` (déjà exécutée ; voir `ASSET_INVENTORY.md`). |
 | `scripts/slice-frame-sheet.ts` | Détecte les bandes et les frames d'une planche compilée (Ron) et écrit un brouillon de rig. |
-| `scripts/build-assets.ts` | Lit `asset-meta/assets.ts` et `asset-meta/rigs/*.json`, puis écrit dans `public/generated/` :<br>• décors et bureaux en WebP, à la taille d'origine ;<br>• interjections en WebP ;<br>• feuilles de pose en WebP ;<br>• audio copié tel quel (MP3, WAV) ;<br>• `manifest.json`, qui contient pour chaque alias l'URL, les dimensions, les ancres et les rectangles.<br>Seuls les assets **référencés** sont traités ; le build est incrémental (hash source + paramètres). |
+| `scripts/build-assets.ts` | Lit `asset-meta/assets.ts` et `asset-meta/rigs/*.json`, puis écrit dans `public/generated/` :<br>• décors et bureaux en WebP, à la taille d'origine ;<br>• interjections en WebP ;<br>• feuilles de pose en WebP ;<br>• audio copié tel quel (MP3, WAV) ;<br>• `manifest.json` (schéma v2), qui contient la `release` et, pour chaque alias, le **chemin** relatif, les dimensions, les ancres et les rectangles ;<br>• `release.json`, l'index de la release (chemin, taille, SHA-256, Content-Type de chaque fichier).<br>Seuls les assets **référencés** sont traités ; le build est incrémental (hash source + paramètres). La `release` est déterministe : 16 caractères hexadécimaux du SHA-256 du manifeste et des fichiers référencés. |
+| `scripts/upload-assets.ts` | `pnpm assets:upload [--dry-run]` : publie la release sur R2 sous `releases/<release>/`, sans jamais écraser ni supprimer ; `release.json` en dernier, comme marqueur de complétude (`DEPLOYMENT_R2.md`). |
+| `scripts/verify-release.ts` | `pnpm assets:verify` : vérifie une release publiée par son URL publique, CORS compris. |
+| `scripts/vite-asset-plugin.ts` | Choisit ce qui va dans `dist/` : en local, le manifeste et ses fichiers ; en distant, le manifeste seul, après avoir vérifié que la release est publiée. |
 
 La règle à respecter : les **métadonnées** (alias, rigs, paramètres) sont versionnées, mais les **images** ne le sont pas.
+
+**Résolution des URL.** Le manifeste ne contient que des chemins ; `AssetCatalog` (`src/runtime/assets.ts`) les résout une seule fois avec `asset-meta/release-layout.ts`, selon `VITE_ASSET_BASE_URL` :
+- absente : `<base>generated/<chemin>`, servi localement ;
+- définie (`--mode remote`, `.env.remote`) : `<VITE_ASSET_BASE_URL>releases/<release>/<chemin>`.
+
+Le manifeste lui-même est toujours servi par le frontend. Le moteur, le contenu et le Director ne manipulent que des IDs. Le `base` de Vite ne change pas. Voir `DEPLOYMENT_R2.md`.
 
 ## 7. Moteur
 
@@ -380,6 +396,7 @@ type TextToken =
 - **Blips.** WAV courts, lus en Web Audio pour une latence minimale.
 - **Volumes séparés** : musique, effets, voix, blips. Ils sont réglés dans les options (stockées en localStorage).
 - **Autoplay.** Un écran « Cliquez pour commencer » déverrouille l'`AudioContext` avant toute lecture.
+- **Origine distante.** Les sons ponctuels passent par Web Audio : Howler les télécharge en XHR, ce qui exige CORS quand les assets sont sur R2. En cas d'échec, Howler bascule **silencieusement** en HTML5 ; une sonde au démarrage (`probeAssetCors`) signale donc une origine refusée. Un son qui ne se charge pas est déchargé, puis ignoré pendant 30 s : il ne bloque pas le jeu et ne déclenche pas de rafale de requêtes.
 - **Repli des voix.** Si un personnage n'a pas de voix pour une interjection (Franziska n'a qu'« Objection »), on utilise le repli déclaré dans son registre, sinon on ne joue aucune voix. Le validateur avertit.
 
 ## 12. Sauvegarde et reprise (jalon 4)
@@ -482,7 +499,8 @@ export const ce1 = section('proces/ce1', [
 | Joueur headless | `src/engine/autoplay.ts` (`AutoPlayer`) | Acquitte les effets bloquants comme le ferait le Director. |
 | Exploration seedée | `src/engine/autoplay.ts` (`explore`) | Exploration bornée et reproductible. |
 | Tests du contenu de démo | `src/content/demo/demo.content.test.ts` | Validation, parcours déterministes, 300 explorations. |
-| Tests e2e | `tests/e2e/` | Exécutés sur **un seul worker**, parce que certains tests mesurent la régularité des frames. |
+| Tests e2e | `tests/e2e/` | Exécutés sur **un seul worker**, parce que certains tests mesurent la régularité des frames. Deux projets : `local` (assets servis par Vite) et `remote-emulated` (build distant et émulateur R2). |
+| Hébergement des assets | `asset-meta/release-layout.test.ts`, `scripts/*.test.ts`, `src/runtime/{assets,audio}.test.ts`, `tests/e2e/assets.spec.ts` | Correspondance URL ↔ clé R2, version déterministe, upload immuable et reprenable, CORS, contenu de `dist/`, ressources absentes. |
 
 ## 15. Compromis assumés
 

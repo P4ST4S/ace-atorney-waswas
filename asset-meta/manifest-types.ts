@@ -65,8 +65,8 @@ export interface SheetPiece {
 /** Every animation frame is complete: it lists all the pieces to draw (base included). */
 export type SpriteFrame = readonly SheetPiece[];
 
-export interface ManifestPose {
-  readonly url: string;
+/** Pose geometry, shared by the manifest entry and its resolved runtime form. */
+export interface PoseLayout {
   readonly sheet: Size;
   readonly size: Size;
   readonly anchor: Point;
@@ -77,15 +77,45 @@ export interface ManifestPose {
   readonly talk: readonly SpriteFrame[];
 }
 
+/**
+ * Paths are relative to the generated root (`public/generated/` locally, `releases/<release>/` on R2),
+ * e.g. "sprites/ron-delite/normal.webp". They are never URLs: the runtime resolves them (asset-meta/release-layout.ts).
+ */
+export interface ManifestPose extends PoseLayout {
+  readonly path: string;
+}
+
 export interface ManifestImage {
-  readonly url: string;
+  readonly path: string;
   readonly w: number;
   readonly h: number;
 }
 
 export interface AssetManifest {
-  readonly version: 1;
+  readonly version: 2;
+  /** Content version of the generated files (see scripts/lib/release.ts); R2 objects live under `releases/<release>/`. */
+  readonly release: string;
   readonly images: Readonly<Record<string, ManifestImage>>;
   readonly sprites: Readonly<Record<string, Readonly<Record<string, ManifestPose>>>>;
+  /** Audio alias -> path. */
   readonly audio: Readonly<Record<string, string>>;
+}
+
+// ---------------------------------------------------------------------------
+// Release index (public/generated/release.json, uploaded last as `releases/<release>/release.json`).
+// ---------------------------------------------------------------------------
+
+export interface ReleaseFile {
+  readonly path: string;
+  readonly size: number;
+  /** Hex SHA-256 of the file content: the explicit fingerprint (an ETag is not always an MD5). */
+  readonly sha256: string;
+  readonly contentType: string;
+}
+
+/** Every object of a release except the index itself. Its presence on R2 marks the release as complete. */
+export interface ReleaseIndex {
+  readonly schema: 1;
+  readonly release: string;
+  readonly files: readonly ReleaseFile[];
 }

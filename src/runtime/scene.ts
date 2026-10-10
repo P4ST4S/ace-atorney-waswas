@@ -1,18 +1,17 @@
 import { courtViews, locationViews, type SceneView } from '../../asset-meta/assets.ts';
-import type { ManifestImage, ManifestPose } from '../../asset-meta/manifest-types.ts';
 import type { CompiledChapter, Stage } from '../engine/types.ts';
-import { assetUrl, type AssetCatalog } from './assets.ts';
+import type { AssetCatalog, ImageAsset, PoseAsset } from './assets.ts';
 
 export interface ResolvedActor {
   readonly char: string;
-  readonly pose: ManifestPose;
+  readonly pose: PoseAsset;
   readonly slot: { readonly x: number; readonly y: number };
 }
 
 /** A stage snapshot resolved to concrete images and sprite poses. */
 export interface ResolvedScene {
-  readonly bg: ManifestImage;
-  readonly fg: { readonly image: ManifestImage; readonly x: number; readonly y: number } | null;
+  readonly bg: ImageAsset;
+  readonly fg: { readonly image: ImageAsset; readonly x: number; readonly y: number } | null;
   readonly actors: readonly ResolvedActor[];
 }
 
@@ -53,5 +52,5 @@ export function resolveScene(stage: Stage, chapter: CompiledChapter, catalog: As
 
 /** Every image a scene needs (decoded before the scene is shown). */
 export function sceneImageUrls(scene: ResolvedScene): string[] {
-  return [scene.bg.url, ...(scene.fg === null ? [] : [scene.fg.image.url]), ...scene.actors.map((a) => a.pose.url)].map(assetUrl);
+  return [scene.bg.url, ...(scene.fg === null ? [] : [scene.fg.image.url]), ...scene.actors.map((a) => a.pose.url)];
 }

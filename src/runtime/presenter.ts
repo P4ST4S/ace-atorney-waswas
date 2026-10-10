@@ -12,6 +12,9 @@ const BANNER_MS = 1700;
 const VERDICT_MS = 2800;
 const DAMAGE_MS = 900;
 const RECORD_POPUP_MS = 1800;
+/** Sounds the presenter plays by itself, and the overlay images of the first cosmetic effects. */
+const PRESENTER_SOUNDS = ['sfx.objection', 'sfx.evidence', 'sfx.damage', 'sfx.testimony', 'sfx.guilty', 'blip.typewriter'] as const;
+const OVERLAY_IMAGES = ['ui.objection', 'ui.holdit', 'ui.takethat', 'ui.evidence-frame'] as const;
 
 export interface PresenterDeps {
   readonly store: ViewStore;
@@ -83,6 +86,28 @@ export class Presenter implements EffectPlayer {
 
   get fast(): boolean {
     return this.deps.fast;
+  }
+
+  /**
+   * Starts downloading what cosmetic effects need (sound effects, voices, blips, interjection bubbles) so that
+   * remote assets are ready before their effect times out. Best effort: each effect still handles a missing
+   * resource itself. Call after the user gesture that unlocks audio.
+   */
+  warmUp(): void {
+    const { audio, catalog, chapter, images } = this.deps;
+    const sounds = new Set<string>(PRESENTER_SOUNDS);
+    for (const character of Object.values(chapter.characters)) {
+      sounds.add(`blip.${character.blip}`);
+      for (const voice of Object.values(character.voices)) if (typeof voice === 'string') sounds.add(voice);
+    }
+    audio.preload([...sounds].flatMap((alias) => catalog.audio(alias) ?? []));
+    for (const alias of OVERLAY_IMAGES) {
+      try {
+        images.load(catalog.image(alias).url).catch(() => undefined);
+      } catch {
+        // Unknown alias: the overlay itself reports it when shown.
+      }
+    }
   }
 
   /** Registered by the UI (idempotent: React Strict Mode may attach twice). */

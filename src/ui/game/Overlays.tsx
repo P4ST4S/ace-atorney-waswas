@@ -1,4 +1,3 @@
-import { assetUrl } from '../../runtime/assets.ts';
 import { useGame, useView } from './context.ts';
 
 const INTERJECTION_IMAGE = { objection: 'ui.objection', holdit: 'ui.holdit', takethat: 'ui.takethat' } as const;
@@ -11,7 +10,7 @@ export function InterjectionOverlay() {
   const image = catalog.image(INTERJECTION_IMAGE[interjection.kind]);
   return (
     <div key={interjection.key} className="pointer-events-none absolute inset-0 flex items-center justify-center" data-testid="interjection" data-kind={interjection.kind}>
-      <img src={assetUrl(image.url)} alt="" className="interjection-pop h-[92%] w-auto max-w-none" draggable={false} />
+      <img src={image.url} alt="" className="interjection-pop h-[92%] w-auto max-w-none" draggable={false} />
     </div>
   );
 }

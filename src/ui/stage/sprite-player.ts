@@ -1,4 +1,4 @@
-import type { ManifestPose, SpriteFrame } from '../../../asset-meta/manifest-types.ts';
+import type { PoseLayout, SpriteFrame } from '../../../asset-meta/manifest-types.ts';
 
 const BLINK_FRAME_MS = 55;
 const BLINK_MIN_INTERVAL_MS = 2200;
@@ -18,7 +18,7 @@ type Mode =
  */
 export class SpritePlayer {
   private readonly pool: HTMLDivElement[] = [];
-  private pose: ManifestPose | null = null;
+  private pose: PoseLayout | null = null;
   private sheetUrl = '';
   private talking = false;
   private cycling = false;
@@ -32,7 +32,7 @@ export class SpritePlayer {
     this.random = random;
   }
 
-  setPose(pose: ManifestPose, sheetUrl: string): void {
+  setPose(pose: PoseLayout, sheetUrl: string): void {
     this.pose = pose;
     this.sheetUrl = sheetUrl;
     this.resetMode(this.lastNow);
@@ -101,7 +101,7 @@ export class SpritePlayer {
     this.show(this.frameFor(pose, mode));
   }
 
-  private frameFor(pose: ManifestPose, mode: Mode): SpriteFrame {
+  private frameFor(pose: PoseLayout, mode: Mode): SpriteFrame {
     switch (mode.kind) {
       case 'idle':
         return pose.idle;

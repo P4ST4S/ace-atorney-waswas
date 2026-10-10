@@ -1,6 +1,6 @@
 import { demoChapter } from './content/demo/chapter.ts';
 import { compileChapter } from './engine/compile.ts';
-import { AssetCatalog } from './runtime/assets.ts';
+import { AssetCatalog, probeAssetCors } from './runtime/assets.ts';
 import { AudioService } from './runtime/audio.ts';
 import { Director } from './runtime/director.ts';
 import { imageCache } from './runtime/image-cache.ts';
@@ -17,6 +17,8 @@ export const FAST_MODE = new URLSearchParams(window.location.search).has('fast')
  */
 async function createGame(): Promise<GameServices> {
   const catalog = await AssetCatalog.load();
+  // Remote assets: report a CORS misconfiguration early (non-blocking; images work without CORS).
+  void probeAssetCors(catalog);
   const chapter = compileChapter(demoChapter);
   const store = createViewStore();
   const audio = new AudioService();

@@ -18,6 +18,7 @@ function Game() {
         onClick={() => {
           // The click is the user gesture browsers require before any audio can play.
           void services.audio.unlock().finally(() => {
+            services.presenter.warmUp();
             services.director.newGame();
             setStarted(true);
           });

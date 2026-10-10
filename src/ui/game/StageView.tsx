@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from 'react';
-import { assetUrl } from '../../runtime/assets.ts';
 import { resolveScene } from '../../runtime/scene.ts';
 import { CharacterSprite } from '../stage/CharacterSprite.tsx';
 import { useGame, useView } from './context.ts';
@@ -30,13 +29,13 @@ export function StageView() {
     <div ref={sceneRef} className="absolute inset-0" data-testid="stage" data-place={place} data-actors={actors}>
       {scene !== null && (
         <>
-          <img src={assetUrl(scene.bg.url)} width={scene.bg.w} height={scene.bg.h} alt="" className="absolute top-0 left-0 max-w-none" draggable={false} />
+          <img src={scene.bg.url} width={scene.bg.w} height={scene.bg.h} alt="" className="absolute top-0 left-0 max-w-none" draggable={false} />
           {scene.actors.map((actor) => (
             <CharacterSprite key={actor.char} char={actor.char} pose={actor.pose} slot={actor.slot} talking={false} seed={seedOf(actor.char)} testId={`actor-${actor.char}`} />
           ))}
           {scene.fg !== null && (
             <img
-              src={assetUrl(scene.fg.image.url)}
+              src={scene.fg.image.url}
               width={scene.fg.image.w}
               height={scene.fg.image.h}
               alt=""

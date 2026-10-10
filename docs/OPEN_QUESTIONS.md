@@ -59,6 +59,12 @@ Ce sont les décisions que ni les assets ni le contexte ne permettent de tranche
   - `assets/` et `public/generated/` sont **hors git**.
   - Les captures de messages doivent rester **hors de tout dépôt public**, et toutes les personnes qui y apparaissent doivent avoir donné leur accord.
   - Mention en jeu : « Fan-game non officiel, non affilié à Capcom. »
+- **Décision de l'utilisateur (hébergement R2)** :
+  - les assets sont servis par le bucket R2 **public** `ace-atorney-waswas`, à travers l'URL `r2.dev`, puis plus tard par un domaine personnalisé ;
+  - les objets sont lisibles par quiconque connaît leur URL, assets Capcom compris ;
+  - ce déploiement ne publie que les **preuves de démo** (`evidence.demo-*`) : `pnpm assets:upload` refuse toute autre image `evidence.*` ;
+  - les **vraies captures restent hors du lot public**, et devront passer par un hébergement privé si elles sont un jour diffusées.
+  - Voir `DEPLOYMENT_R2.md`.
 
 ## 9. Versionnement git
 

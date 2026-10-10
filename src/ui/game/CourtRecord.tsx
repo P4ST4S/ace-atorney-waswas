@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CompiledChapter, CourtRecord as Record_ } from '../../engine/types.ts';
-import { assetUrl, type AssetCatalog } from '../../runtime/assets.ts';
+import type { AssetCatalog } from '../../runtime/assets.ts';
 import { useGame, useView } from './context.ts';
 
 export interface RecordItemView {
@@ -17,7 +17,7 @@ export function recordItem(id: string, kind: 'evidence' | 'profile', chapter: Co
   if (kind === 'profile') {
     const profile = chapter.profiles[id];
     if (profile === undefined) return null;
-    return { id, kind, name: chapter.characters[id]?.name ?? id, description: profile.description, icon: assetUrl(catalog.image(profile.portrait).url), detail: null };
+    return { id, kind, name: chapter.characters[id]?.name ?? id, description: profile.description, icon: catalog.image(profile.portrait).url, detail: null };
   }
   const def = chapter.evidence[id];
   if (def === undefined) return null;
@@ -29,15 +29,15 @@ export function recordItem(id: string, kind: 'evidence' | 'profile', chapter: Co
     kind,
     name: variant?.name ?? def.name,
     description: variant?.description ?? def.description,
-    icon: assetUrl(catalog.image(variant?.icon ?? def.icon).url),
-    detail: detail === undefined ? null : assetUrl(catalog.image(detail).url),
+    icon: catalog.image(variant?.icon ?? def.icon).url,
+    detail: detail === undefined ? null : catalog.image(detail).url,
   };
 }
 
 /** Icon inside the original evidence frame. */
 export function FramedIcon({ src, className = '' }: { readonly src: string; readonly className?: string }) {
   const { catalog } = useGame();
-  const frame = assetUrl(catalog.image('ui.evidence-frame').url);
+  const frame = catalog.image('ui.evidence-frame').url;
   return (
     <div className={`relative aspect-square ${className}`}>
       <img src={frame} alt="" className="absolute inset-0 h-full w-full" draggable={false} />

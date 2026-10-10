@@ -9,15 +9,20 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:remote": "vite --mode remote --port 5173 --strictPort",
     "build": "vite build",
-    "preview": "vite preview",
+    "build:remote": "vite build --mode remote",
+    "preview": "vite preview --port 4173 --strictPort",
     "typecheck": "tsc -p tsconfig.engine.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p tsconfig.scripts.json",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:r2": "playwright test --config tests/e2e/r2.config.ts",
     "content:check": "vitest run content",
     "assets:build": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/build-assets.ts",
+    "assets:upload": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=.env.remote --env-file-if-exists=r2.env scripts/upload-assets.ts",
+    "assets:verify": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=.env.remote scripts/verify-release.ts",
     "assets:slice": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/slice-frame-sheet.ts"
   },
   "dependencies": {
@@ -29,6 +34,7 @@
     "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "3.1149.0",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.64.0",
     "@tailwindcss/vite": "4.3.3",

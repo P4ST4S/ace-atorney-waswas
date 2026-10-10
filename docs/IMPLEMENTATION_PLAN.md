@@ -11,6 +11,7 @@ Chaque jalon produit un résultat **jouable ou vérifiable**. On attaque tôt le
 | 2 — Boucle minimale | ✅ | Moteur pur et Director avec son contrat (tests déterministes de redémarrage, timeout, échec, double clic). Machine à écrire, blips, interjection avec voix FR, musique. |
 | 3 — Tranche verticale | ✅ | Témoignage, contre-interrogatoire (16 règles testées), Dossier et vue détail, santé, EXP, verdict, validateur, parcours headless et 300 explorations seedées. Playwright 14/14, dont un parcours à vitesse normale. |
 | 4 — Robustesse | ⏳ | Après la revue de la tranche. |
+| Lot R2 — Hébergement des assets | ✅ (local) | Résolution d'URL centralisée (`VITE_ASSET_BASE_URL`), releases versionnées et immuables (`releases/<release>/…`), `pnpm assets:upload` et `assets:verify`, politique CORS, build distant sans assets dans `dist/`, émulateur R2 et projet Playwright `remote-emulated`. Les opérations sur le vrai bucket sont décrites dans `DEPLOYMENT_R2.md`. |
 
 **Écarts par rapport au plan initial, tous mineurs :**
 - Rigs statiques ajoutés pour Edgeworth et le Juge, nécessaires à la démo. Le Juge est affiché à l'échelle 1,8, car sa planche est stockée en basse résolution.

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { ManifestPose } from '../../../asset-meta/manifest-types.ts';
-import { assetUrl } from '../../runtime/assets.ts';
+import type { PoseAsset } from '../../runtime/assets.ts';
 import { imageCache } from '../../runtime/image-cache.ts';
 import { mulberry32 } from './rng.ts';
 import { SpritePlayer } from './sprite-player.ts';
@@ -10,7 +9,7 @@ import { onTick } from './ticker.ts';
 interface CharacterSpriteProps {
   /** Character id: registers the player so the typewriter can animate the mouth. */
   readonly char?: string;
-  readonly pose: ManifestPose;
+  readonly pose: PoseAsset;
   /** Stage position of the pose anchor. */
   readonly slot: { readonly x: number; readonly y: number };
   readonly talking: boolean;
@@ -43,10 +42,12 @@ export function CharacterSprite({ char, pose, slot, talking, seed, cycling = fal
 
   useEffect(() => {
     let cancelled = false;
-    const url = assetUrl(pose.url);
     // Only show the pose once its sheet is decoded, to avoid a blank or partially painted frame.
-    void imageCache.load(url).then(() => {
-      if (!cancelled) playerRef.current?.setPose(pose, url);
+    imageCache.load(pose.url).then(() => {
+      if (!cancelled) playerRef.current?.setPose(pose, pose.url);
+    }, (error: unknown) => {
+      // Scene sheets are preloaded as essential resources (retry overlay); this only covers other callers.
+      console.warn(`[sprite] cannot load ${pose.url}`, error);
     });
     return () => {
       cancelled = true;
